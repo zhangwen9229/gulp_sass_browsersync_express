@@ -23,6 +23,7 @@ const gulp = require('gulp'),
     inject = require('gulp-inject');
 
 const todayTime = new Date().getTime();
+const publicPath = 'public';
 
 var px2remOptions = {
     rootValue: 750 / 16,
@@ -48,7 +49,7 @@ var postCssOptions = {
 gulp.task('sass', function () {
     var plugins = [autoprefixer({browsers: ['> 5%']})];
     // const f = filter(['**', '!node_modules/**', '!px2rem.scss']);
-    return gulp.src('src/stylesheets/*.scss')
+    return gulp.src('src/stylesheets/**/*.scss')
     // .pipe(f)
         .pipe(sourcemaps.init())
         .pipe(sass().on('error', sass.logError))
@@ -65,7 +66,7 @@ gulp.task('sass', function () {
 // 删除文件
 gulp.task('clean', function (cb) {
     return gulp.src([
-        'public/', 'views/'
+        publicPath + '/', 'views/'
     ], {read: false}).pipe(clean());
 });
 
@@ -137,15 +138,15 @@ gulp.task('inject', function (cb) {
                     starttag: '<!-- inject:js -->',
                     endtag: '<!-- endinject -->',
                     transform: function (filepath, file, i, length) {
-                        let scriptStr = "<script src='" + cssPathObj.jsLinkPath + "?t=" + todayTime + "' ></script>";
+                        let scriptStr = "<script src='" + cssPathObj.jsLinkPath + "?t=" + todayTime + "'></script>";
+                        console.log(scriptStr);
                         return scriptStr;
                     }
                 }))
-                .pipe(gulp.dest('views/'));
+                .pipe(gulp.dest(path.dirname(ejsPath)));
         });
         taskArr.push(taskName);
     })
-    console.log(taskArr)
     if (taskArr.length == 0) {
         cb();
         return;
@@ -189,7 +190,8 @@ gulp.task('dev', function () {
         .watch('src/stylesheets/**/*.scss')
         .on('change', function (event) {
             var plugins = [autoprefixer({browsers: ['> 5%']})];
-            return gulp.src(path.relative(__dirname, event.path))
+            const filePath = path.relative(__dirname, event.path);
+            return gulp.src(filePath)
                 .pipe(sourcemaps.init())
                 .pipe(sass().on('error', sass.logError))
                 .pipe(postcss(plugins))
@@ -197,7 +199,7 @@ gulp.task('dev', function () {
                 .pipe(cssBase64())
                 .pipe(minify())
                 .pipe(sourcemaps.write('./'))
-                .pipe(gulp.dest('public/stylesheets/'))
+                .pipe(gulp.dest(getPublicFilePath(filePath)))
                 // .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
                 .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
         });
@@ -206,12 +208,13 @@ gulp.task('dev', function () {
     gulp
         .watch('src/javascripts/**/*.js')
         .on('change', function (event) {
+            const filePath = path.relative(__dirname, event.path);
             return gulp
-                .src(path.relative(__dirname, event.path))
+                .src(filePath)
                 .pipe(jshint())
                 .pipe(jshint.reporter('default'))
                 .pipe(uglify({mangle: true, compress: true}))
-                .pipe(gulp.dest('public/javascripts/'))
+                .pipe(gulp.dest(getPublicFilePath(filePath)))
         })
     gulp
         .watch("public/javascripts/**/*.js")
@@ -221,8 +224,9 @@ gulp.task('dev', function () {
     gulp
         .watch('src/images/**/*', ['img'])
         .on('change', function (event) {
+            const filePath = path.relative(__dirname, event.path);
             return gulp
-                .src(path.relative(__dirname, event.path))
+                .src(filePath)
                 .pipe(imagemin([
                     imagemin.gifsicle({interlaced: true}),
                     imagemin.jpegtran({progressive: true}),
@@ -235,7 +239,7 @@ gulp.task('dev', function () {
                         ]
                     })
                 ]))
-                .pipe(gulp.dest('public/images/'))
+                .pipe(gulp.dest(getPublicFilePath(filePath)))
         });
     gulp
         .watch("public/images/**/*")
@@ -276,7 +280,7 @@ gulp.task('dev', function () {
                     return scriptStr;
                 }
             }))
-            .pipe(gulp.dest('views/'))
+            .pipe(gulp.dest(path.dirname(filePath) ))
             .on('end', reload);
     });
 })
@@ -336,4 +340,11 @@ function getCssPath(ejsPath) {
         jsLinkPath: '/' + jsLinkPathArr.join('/'),
         jsFilePath: jsPathArr.join('/')
     };
+}
+
+function getPublicFilePath(filePath){
+    const pathArr = filePath.split(path.sep);
+    pathArr[0] = publicPath;
+    pathArr.pop();
+    return pathArr.join('/');
 }
