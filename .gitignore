@@ -4,3 +4,5 @@ node_modules/
 # OSX
 #
 .DS_Store
+
+.vscode
