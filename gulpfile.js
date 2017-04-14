@@ -22,6 +22,8 @@ const gulp = require('gulp'),
     path = require('path'),
     inject = require('gulp-inject');
 
+const todayTime = new Date().getTime();
+
 var px2remOptions = {
     rootValue: 750 / 16,
     unitPrecision: 5,
@@ -121,7 +123,7 @@ gulp.task('inject', function (cb) {
                     starttag: '<!-- inject:css -->',
                     endtag: '<!-- endinject -->',
                     transform: function (filepath, file, i, length) {
-                        let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.linkPath + "' />";
+                        let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.linkPath + "?t=" + todayTime + "' />";
                         return scriptStr;
                     }
                 }))
@@ -157,9 +159,15 @@ gulp.task('nodemon', function (cb) {
         // to avoid nodemon being started multiple times thanks @matthisk
         if (!started) {
             cb();
-            started = true;
-        }
-    });
+                started = true;
+            }
+        })
+        .on('restart', function () {
+            console.log('restarted!');
+            setTimeout(function() {                
+                reload();
+            }, 1000);
+        });
 });
 
 gulp.task('dev', function () {
@@ -196,7 +204,7 @@ gulp.task('dev', function () {
         console.log('relative path:' + path.relative(__dirname, event.path));
         const filePath = path.relative(__dirname, event.path);
         const ejsArr = getEntries(filePath);
-        const cssPathObj =  getCssPath(ejsArr[0]);
+        const cssPathObj = getCssPath(ejsArr[0]);
         gulp
             .src(filePath)
             .pipe(inject(gulp.src(cssPathObj.filePath, {read: false}), {
