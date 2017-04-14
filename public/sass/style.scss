@@ -1,0 +1,205 @@
+@import "px2rem.scss";
+$designWidth: 750;
+*{
+    padding: 0;
+    margin: 0;
+    text-decoration: none;
+    list-style: none;
+    font-weight: normal;
+}
+body{
+    // width: 750px;
+    margin: 0 auto;
+    font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
+}
+.zhongqiu-app{
+    background: url("img/a1-banner.png") center 0 no-repeat #6202b9;
+    background-size: 100%;
+    padding-top: 335px;
+    max-height: 100%
+}
+.welfare .title{
+    width: 554px;
+    height: 72px;
+    background-color: rgba( 137, 4, 228 ,0.58);
+    border-radius: 45px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 13px;
+    box-sizing: border-box;
+    font-size: 0;
+}
+.welfare .title h3{
+    border: 3px solid #ffe500;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 24px;
+    background: #8904e4;
+}
+.welfare .title h3 span{
+    color: #fff500;
+    font-size: 24px;
+    display: inline-block;
+    vertical-align: top;
+}
+.welfare .title h3 i{
+    display: inline-block;
+    vertical-align: top;
+    width: 52px;
+    height: 52px;
+    line-height: 52px;
+    font-style: normal;
+    background: #ffe500;
+    border: 10px solid #8904e4;
+    border-radius: 50%;
+    color: #6703b9;
+    font-size: 39px;
+    position: relative;
+    margin: -18px 13px 0 13px;
+    box-shadow: 0 0 0 3px #ffe500;
+    font-weight: bold;
+}
+//[data-dpr="1"] .welfare .title h3 i{
+//    line-height: 0.74rem;
+//}
+.welfare .wel-cont{
+    position: relative;
+    background: #8904e4;
+    border-radius: 20px;
+    padding: 40px 0 30px;
+    margin: 46px 35px 0;
+    text-align: center;
+}
+.welfare .wel-cont .act-tit{
+    position: absolute;
+    width: 380px;
+    height: 60px;
+    background: url("img/act-title.png") 0 0 no-repeat;
+    background-size: 100%;
+    left: 50%;
+    margin-left: -190px;
+    top: -30px;
+    text-align: center;
+    line-height: 60px;
+    color: #ffe500;
+    font-size: 36px;
+}
+.welfare .wel-cont h3{
+    line-height: 1;
+    color: #ffe500;
+    font-size: 22px;
+}
+.welfare .wel-cont .part{
+    background: url("img/part.png") 0 0 no-repeat;
+    background-size: 100%;
+    width: 580px;
+    margin: 10px auto 0;
+    padding-top: 135px;
+}
+.welfare .wel-cont .part img{
+    width: 224px;
+    display: block;
+    margin: 0 auto;
+}
+.welfare .wel-cont .go-reg{
+    display: inline-block;
+    background: url("img/reg-btn.png") center 0 no-repeat;
+    width: 330px;
+    height: 78px;
+    background-size: 100%;
+    text-align: center;
+    line-height: 75px;
+    font-size: 41px;
+    color: #362c51;
+    font-weight: bold;
+    margin-top: 38px;
+}
+.welfare .wel-cont ul{
+    margin: 0 68px;
+    padding: 10px 0 34px;
+}
+.welfare .wel-cont ul li{
+    height: 62px;
+    display: -webkit-box;
+    text-align: left;
+    margin-top: 8px;
+}
+.welfare .wel-cont ul li>h4{
+    width: 290px;
+    font-size: 30px;
+    color: #ffffff;
+    line-height: 62px;
+}
+.welfare .wel-cont ul li>p{
+    border-radius: 50%;
+    background-color: #6703b9;
+    width: 40px;
+    height: 42px;
+    line-height: 42px;
+    text-align: center;
+    color: #ffffff;
+    font-size: 22px;
+    margin-top: 11px;
+    margin-right: 20px;
+}
+.welfare .wel-cont ul li .quan{
+    width: 190px;
+    height: 62px;
+}
+.welfare .wel-cont ul li .quan.q5{
+    background: url("img/5.png") 0 0 no-repeat ;
+    background-size: 100%;
+}
+.welfare .wel-cont ul li .quan.q10{
+    background: url("img/10.png") 0 0 no-repeat ;
+    background-size: 100%;
+}
+.welfare .wel-cont ul li .quan.q28{
+    background: url("img/28.png") 0 0 no-repeat ;
+    background-size: 100%;
+}
+.welfare.w2{
+    margin-top: 30px;
+}
+.welfare .wel-cont .tips{
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 1;
+    margin-top: 24px;
+}
+.welfare.w2 .title h3 i{
+    box-shadow: none;
+}
+.rules .title h3 {
+    background: #6202ba;
+}
+.rules{
+    margin: 68px 38px 0;
+}
+.rules .cont .words{
+    color: #ffffff;
+    font-size: 20px;
+    line-height: 30px;
+    padding-bottom: 50px;
+    padding-top: 50px;
+}
+.rules .cont .words .ml34{
+    margin-left: 34px;
+}
+/*测试*/
+.rules .title{
+    width: 594px;
+    text-align: center;
+    margin: 0 auto;
+    position: relative;
+    border-top: 1px dashed #a365c2;/*no*/
+}
+.rules .title h3{
+    width: 142px;
+    height: 30px;
+    color: #fede02;
+    font-size: 26px;/*px*/
+    background: #6202b9;
+    margin: -19px auto 0;
+    display: flex;
+}
