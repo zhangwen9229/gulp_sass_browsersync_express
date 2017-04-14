@@ -77,6 +77,13 @@ gulp.task('ejs', function () {
         .pipe(gulp.dest('./views/'));
 });
 
+// 拷贝lib
+gulp.task('lib', function () {
+    return gulp
+        .src('src/lib/**/*.js')
+        .pipe(gulp.dest('public/lib/'))
+});
+
 // 压缩img
 gulp.task('img', function () {
     return gulp.src('src/images/**/*') //引入所有需处理的Img
@@ -215,10 +222,8 @@ gulp.task('dev', function () {
                     return scriptStr;
                 }
             }))
-            // .pipe(htmlmin({collapseWhitespace: true}))
             .pipe(gulp.dest('views/'))
             .on('end', reload);
-        // reload();
     });
 })
 
@@ -228,7 +233,7 @@ gulp.task('default', function (cb) {
 
 gulp.task('build', function (cb) {
     runSequence('clean', [
-        'sass', 'ejs', 'js', 'img'
+        'sass', 'ejs', 'js', 'img','lib'
     ], 'inject', cb);
 });
 
