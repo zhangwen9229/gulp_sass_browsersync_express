@@ -22,19 +22,33 @@ function getCssPath(ejsPath) {
     let cssname = path.basename(ejsPath, extname);
     let ejsPathArr = ejsPath.split(path.sep);
     ejsPathArr.shift();
-    ejsPathArr = ['stylesheets',...ejsPathArr];
-    ejsPathArr[ejsPathArr.length - 1] = cssname + '.css';
-    const cssPathArr = [
-        'public',...ejsPathArr
+    const jsLinkPathArr = [
+        'javascripts', ...ejsPathArr
+    ];
+    jsLinkPathArr[jsLinkPathArr.length - 1] = cssname + '.js';
+
+    const jsPathArr = [
+        'public', ...jsLinkPathArr
     ];
 
-    // console.log(ejsPathArr)
-    // console.log(cssPathArr)
+    ejsPathArr = [
+        'stylesheets', ...ejsPathArr
+    ];
+    ejsPathArr[ejsPathArr.length - 1] = cssname + '.css';
+    const cssPathArr = [
+        'public', ...ejsPathArr
+    ];
+
+    // console.log(ejsPathArr) console.log(cssPathArr)
     console.log(ejsPathArr.join('/'));
     console.log(cssPathArr.join('/'));
+    console.log(jsLinkPathArr.join('/'));
+    console.log(jsPathArr.join('/'));
     return {
-        linkPath: '/' + ejsPathArr.join('/'),
-        filePath: cssPathArr.join('/')
+        cssLinkPath: '/' + ejsPathArr.join('/'),
+        cssFilePath: cssPathArr.join('/'),
+        jsLinkPath: '/' + jsLinkPathArr.join('/'),
+        jsFilePath: jsPathArr.join('/')
     };
 }
 

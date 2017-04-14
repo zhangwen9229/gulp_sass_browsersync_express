@@ -47,7 +47,7 @@ var postCssOptions = {
 // scss编译后的css将注入到浏览器里实现更新
 gulp.task('sass', function () {
     var plugins = [autoprefixer({browsers: ['> 5%']})];
-    const f = filter(['**', '!node_modules/**', '!px2rem.scss']);
+    // const f = filter(['**', '!node_modules/**', '!px2rem.scss']);
     return gulp.src('src/stylesheets/*.scss')
     // .pipe(f)
         .pipe(sourcemaps.init())
@@ -119,22 +119,28 @@ gulp.task('js', function () {
 gulp.task('inject', function (cb) {
     const ejsArr = getEntries('views/**/*.ejs');
     var taskArr = [];
-    console.log(ejsArr)
     ejsArr.forEach(function (ejsPath, index) {
         var cssPathObj = getCssPath(ejsPath);
         var taskName = 'inject' + index;
         gulp.task(taskName, function (cb) {
             return gulp
                 .src(ejsPath)
-                .pipe(inject(gulp.src(cssPathObj.filePath, {read: false}), {
+                .pipe(inject(gulp.src(cssPathObj.cssFilePath, {read: false}), {
                     starttag: '<!-- inject:css -->',
                     endtag: '<!-- endinject -->',
                     transform: function (filepath, file, i, length) {
-                        let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.linkPath + "?t=" + todayTime + "' />";
+                        let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.cssLinkPath + "?t=" + todayTime + "' />";
                         return scriptStr;
                     }
                 }))
-                // .pipe(htmlmin({collapseWhitespace: true}))
+                .pipe(inject(gulp.src(cssPathObj.jsFilePath, {read: false}), {
+                    starttag: '<!-- inject:js -->',
+                    endtag: '<!-- endinject -->',
+                    transform: function (filepath, file, i, length) {
+                        let scriptStr = "<script src='" + cssPathObj.jsLinkPath + "?t=" + todayTime + "' ></script>";
+                        return scriptStr;
+                    }
+                }))
                 .pipe(gulp.dest('views/'));
         });
         taskArr.push(taskName);
@@ -171,7 +177,7 @@ gulp.task('nodemon', function (cb) {
         })
         .on('restart', function () {
             console.log('restarted!');
-            setTimeout(function() {                
+            setTimeout(function () {
                 reload();
             }, 1000);
         });
@@ -179,10 +185,34 @@ gulp.task('nodemon', function (cb) {
 
 gulp.task('dev', function () {
     // 将你的默认的任务代码放这 监听所有scss文档
-    gulp.watch('src/stylesheets/**/*.scss', ['sass']);
+    gulp
+        .watch('src/stylesheets/**/*.scss')
+        .on('change', function (event) {
+            var plugins = [autoprefixer({browsers: ['> 5%']})];
+            return gulp.src(path.relative(__dirname, event.path))
+                .pipe(sourcemaps.init())
+                .pipe(sass().on('error', sass.logError))
+                .pipe(postcss(plugins))
+                .pipe(px2rem(px2remOptions, postCssOptions))
+                .pipe(cssBase64())
+                .pipe(minify())
+                .pipe(sourcemaps.write('./'))
+                .pipe(gulp.dest('public/stylesheets/'))
+                // .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
+                .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
+        });
 
     // 监听所有.js档
-    gulp.watch('src/javascripts/**/*.js', ['js'])
+    gulp
+        .watch('src/javascripts/**/*.js')
+        .on('change', function (event) {
+            return gulp
+                .src(path.relative(__dirname, event.path))
+                .pipe(jshint())
+                .pipe(jshint.reporter('default'))
+                .pipe(uglify({mangle: true, compress: true}))
+                .pipe(gulp.dest('public/javascripts/'))
+        })
     gulp
         .watch("public/javascripts/**/*.js")
         .on('change', reload);
@@ -190,7 +220,23 @@ gulp.task('dev', function () {
     // 监听所有图片档
     gulp
         .watch('src/images/**/*', ['img'])
-        .on('change', reload);
+        .on('change', function (event) {
+            return gulp
+                .src(path.relative(__dirname, event.path))
+                .pipe(imagemin([
+                    imagemin.gifsicle({interlaced: true}),
+                    imagemin.jpegtran({progressive: true}),
+                    imagemin.optipng({optimizationLevel: 5}),
+                    imagemin.svgo({
+                        plugins: [
+                            {
+                                removeViewBox: true
+                            }
+                        ]
+                    })
+                ]))
+                .pipe(gulp.dest('public/images/'))
+        });
     gulp
         .watch("public/images/**/*")
         .on('change', reload);
@@ -214,11 +260,19 @@ gulp.task('dev', function () {
         const cssPathObj = getCssPath(ejsArr[0]);
         gulp
             .src(filePath)
-            .pipe(inject(gulp.src(cssPathObj.filePath, {read: false}), {
+            .pipe(inject(gulp.src(cssPathObj.cssFilePath, {read: false}), {
                 starttag: '<!-- inject:css -->',
                 endtag: '<!-- endinject -->',
                 transform: function (filepath, file, i, length) {
-                    let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.linkPath + "' />";
+                    let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.cssLinkPath + "' />";
+                    return scriptStr;
+                }
+            }))
+            .pipe(inject(gulp.src(cssPathObj.jsFilePath, {read: false}), {
+                starttag: '<!-- inject:js -->',
+                endtag: '<!-- endinject -->',
+                transform: function (filepath, file, i, length) {
+                    let scriptStr = "<script src='" + cssPathObj.jsLinkPath + "?t=" + todayTime + "' ></script>";
                     return scriptStr;
                 }
             }))
@@ -233,7 +287,7 @@ gulp.task('default', function (cb) {
 
 gulp.task('build', function (cb) {
     runSequence('clean', [
-        'sass', 'ejs', 'js', 'img','lib'
+        'sass', 'ejs', 'js', 'img', 'lib'
     ], 'inject', cb);
 });
 
@@ -260,6 +314,15 @@ function getCssPath(ejsPath) {
     let cssname = path.basename(ejsPath, extname);
     let ejsPathArr = ejsPath.split(path.sep);
     ejsPathArr.shift();
+    const jsLinkPathArr = [
+        'javascripts', ...ejsPathArr
+    ];
+    jsLinkPathArr[jsLinkPathArr.length - 1] = cssname + '.js';
+
+    const jsPathArr = [
+        'public', ...jsLinkPathArr
+    ];
+
     ejsPathArr = [
         'stylesheets', ...ejsPathArr
     ];
@@ -267,9 +330,10 @@ function getCssPath(ejsPath) {
     const cssPathArr = [
         'public', ...ejsPathArr
     ];
-
     return {
-        linkPath: '/' + ejsPathArr.join('/'),
-        filePath: cssPathArr.join('/')
+        cssLinkPath: '/' + ejsPathArr.join('/'),
+        cssFilePath: cssPathArr.join('/'),
+        jsLinkPath: '/' + jsLinkPathArr.join('/'),
+        jsFilePath: jsPathArr.join('/')
     };
 }
