@@ -20,10 +20,12 @@ const gulp = require('gulp'),
     cssBase64 = require('gulp-base64'),
     glob = require('glob'),
     path = require('path'),
+    tinypng = require('gulp-tinypng'),
     inject = require('gulp-inject');
 
 const todayTime = new Date().getTime();
 const publicPath = 'public';
+const isDev = true;//是否开发模式
 
 var px2remOptions = {
     rootValue: 750 / 16,
@@ -66,7 +68,8 @@ gulp.task('sass', function () {
 // 删除文件
 gulp.task('clean', function (cb) {
     return gulp.src([
-        publicPath + '/', 'views/'
+        publicPath + '/',
+        'views/'
     ], {read: false}).pipe(clean());
 });
 
@@ -81,7 +84,7 @@ gulp.task('ejs', function () {
 // 拷贝lib
 gulp.task('lib', function () {
     return gulp
-        .src('src/lib/**/*.js')
+        .src('src/lib/**/*')
         .pipe(gulp.dest('public/lib/'))
 });
 
@@ -91,7 +94,7 @@ gulp.task('img', function () {
         .pipe(imagemin([
         imagemin.gifsicle({interlaced: true}),
         imagemin.jpegtran({progressive: true}),
-        imagemin.optipng({optimizationLevel: 5}),
+        imagemin.optipng({optimizationLevel: 1}),
         imagemin.svgo({
             plugins: [
                 {
@@ -100,11 +103,18 @@ gulp.task('img', function () {
             ]
         })
     ])) //压缩图片
-    // .pipe(imagemin({ optimizationLevel: 5, progressive: true, interlaced: true
-    // }))      //压缩图片 如果想对变动过的文件进行压缩，则使用下面一句代码 .pipe(cache(imagemin({
-    // optimizationLevel: 3, progressive: true, interlaced: true })))
+    // .pipe(imagemin({optimizationLevel: 5, progressive: true, interlaced: true}))
+    // //压缩图片 如果想对变动过的文件进行压缩，则使用下面一句代码 .pipe(cache(imagemin({ optimizationLevel: 3,
+    // progressive: true, interlaced: true })))
         .pipe(gulp.dest('public/images/'))
     // .pipe(notify({ message: '图片处理完成' }));
+});
+
+gulp.task('tinypng', function () {
+    gulp
+        .src('src/images/**/*')
+        .pipe(tinypng('OBvZm6eLcfk0uSgsUD34Lz9MsP1qfGIw'))
+        .pipe(gulp.dest('public/images/'));
 });
 
 // 压缩js
@@ -113,7 +123,7 @@ gulp.task('js', function () {
         .src('src/javascripts/**/*.js')
         .pipe(jshint())
         .pipe(jshint.reporter('default'))
-        .pipe(uglify({mangle: true, compress: true}))
+        // .pipe(uglify({mangle: true, compress: true}))
         .pipe(gulp.dest('public/javascripts/'))
 });
 
@@ -191,13 +201,15 @@ gulp.task('dev', function () {
         .on('change', function (event) {
             var plugins = [autoprefixer({browsers: ['> 5%']})];
             const filePath = path.relative(__dirname, event.path);
-            return gulp.src(filePath)
+            return gulp
+                .src(filePath)
                 .pipe(sourcemaps.init())
                 .pipe(sass().on('error', sass.logError))
                 .pipe(postcss(plugins))
                 .pipe(px2rem(px2remOptions, postCssOptions))
                 .pipe(cssBase64())
                 .pipe(minify())
+                .on('error', swallowError)
                 .pipe(sourcemaps.write('./'))
                 .pipe(gulp.dest(getPublicFilePath(filePath)))
                 // .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
@@ -206,6 +218,14 @@ gulp.task('dev', function () {
 
     // 监听所有.js档
     gulp
+        .watch('src/lib/**/*.js')
+        .on('change', function (event) {
+            const filePath = path.relative(__dirname, event.path);
+            return gulp
+                .src(filePath)
+                .pipe(gulp.dest(getPublicFilePath(filePath)))
+        });
+    gulp
         .watch('src/javascripts/**/*.js')
         .on('change', function (event) {
             const filePath = path.relative(__dirname, event.path);
@@ -213,11 +233,12 @@ gulp.task('dev', function () {
                 .src(filePath)
                 .pipe(jshint())
                 .pipe(jshint.reporter('default'))
-                .pipe(uglify({mangle: true, compress: true}))
+                // .pipe(uglify({mangle: true, compress: true}))
+                .on('error', swallowError)
                 .pipe(gulp.dest(getPublicFilePath(filePath)))
-        })
+        });
     gulp
-        .watch("public/javascripts/**/*.js")
+        .watch(["public/javascripts/**/*.js", "public/lib/**/*.js"])
         .on('change', reload);
 
     // 监听所有图片档
@@ -239,6 +260,7 @@ gulp.task('dev', function () {
                         ]
                     })
                 ]))
+                .on('error', swallowError)
                 .pipe(gulp.dest(getPublicFilePath(filePath)))
         });
     gulp
@@ -249,10 +271,15 @@ gulp.task('dev', function () {
     gulp
         .watch('src/views/**/*.ejs')
         .on('change', function (event) {
+            const filePath = path.relative(__dirname, event.path);
+            const pathArr = filePath.split(path.sep);
+            pathArr.shift();
+            pathArr.pop();
             return gulp
                 .src(event.path)
                 .pipe(htmlmin({collapseWhitespace: true}))
-                .pipe(gulp.dest('./views/'));
+                .on('error', swallowError)
+                .pipe(gulp.dest(pathArr.join('/')))
         });
     var watcher = gulp.watch("./views/**/*.ejs");
     watcher.on('change', function (event) {
@@ -280,7 +307,8 @@ gulp.task('dev', function () {
                     return scriptStr;
                 }
             }))
-            .pipe(gulp.dest(path.dirname(filePath) ))
+            .on('error', swallowError)
+            .pipe(gulp.dest(path.dirname(filePath)))
             .on('end', reload);
     });
 })
@@ -342,9 +370,16 @@ function getCssPath(ejsPath) {
     };
 }
 
-function getPublicFilePath(filePath){
+function getPublicFilePath(filePath) {
     const pathArr = filePath.split(path.sep);
     pathArr[0] = publicPath;
     pathArr.pop();
     return pathArr.join('/');
+}
+
+function swallowError(error) {
+    // If you want details of the error in the console
+  console.error(error.toString())
+
+  this.emit('end')
 }
