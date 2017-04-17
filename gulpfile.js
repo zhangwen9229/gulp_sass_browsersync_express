@@ -20,7 +20,6 @@ const gulp = require('gulp'),
     cssBase64 = require('gulp-base64'),
     glob = require('glob'),
     path = require('path'),
-    tinypng = require('gulp-tinypng'),
     inject = require('gulp-inject');
 
 const todayTime = new Date().getTime();
@@ -108,13 +107,6 @@ gulp.task('img', function () {
     // progressive: true, interlaced: true })))
         .pipe(gulp.dest('public/images/'))
     // .pipe(notify({ message: '图片处理完成' }));
-});
-
-gulp.task('tinypng', function () {
-    gulp
-        .src('src/images/**/*')
-        .pipe(tinypng('OBvZm6eLcfk0uSgsUD34Lz9MsP1qfGIw'))
-        .pipe(gulp.dest('public/images/'));
 });
 
 // 压缩js
