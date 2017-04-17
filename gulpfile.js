@@ -24,7 +24,7 @@ const gulp = require('gulp'),
 
 const todayTime = new Date().getTime();
 const publicPath = 'public';
-const isDev = true;//是否开发模式
+let isDev = false; //是否开发模式
 
 var px2remOptions = {
     rootValue: 750 / 16,
@@ -49,19 +49,25 @@ var postCssOptions = {
 // scss编译后的css将注入到浏览器里实现更新
 gulp.task('sass', function () {
     var plugins = [autoprefixer({browsers: ['> 5%']})];
-    // const f = filter(['**', '!node_modules/**', '!px2rem.scss']);
-    return gulp.src('src/stylesheets/**/*.scss')
-    // .pipe(f)
+    // const f = filter(['**', '!node_modules/**', '!px2rem.scss']); .pipe(f)
+    let sassTask = gulp
+        .src('src/stylesheets/**/*.scss')
         .pipe(sourcemaps.init())
         .pipe(sass().on('error', sass.logError))
         .pipe(postcss(plugins))
         .pipe(px2rem(px2remOptions, postCssOptions))
         .pipe(cssBase64())
-        .pipe(minify())
-        .pipe(sourcemaps.write('./'))
-        .pipe(gulp.dest('public/stylesheets/'))
-        .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
-        .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
+        .pipe(minify());
+    if (isDev) {
+        return sassTask
+            .pipe(sourcemaps.write('./'))
+            .pipe(gulp.dest('public/stylesheets/'))
+            .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
+            .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
+    } else {
+        return sassTask.pipe(gulp.dest('public/stylesheets/'));
+    }
+
 });
 
 // 删除文件
@@ -74,17 +80,12 @@ gulp.task('clean', function (cb) {
 
 // 压缩ejs
 gulp.task('ejs', function () {
-    return gulp
-        .src('src/views/**/*.ejs')
-        .pipe(htmlmin({collapseWhitespace: true}))
-        .pipe(gulp.dest('./views/'));
+    return Fn_EJSTask('src/views/**/*.ejs','./views/');
 });
 
 // 拷贝lib
 gulp.task('lib', function () {
-    return gulp
-        .src('src/lib/**/*')
-        .pipe(gulp.dest('public/lib/'))
+    return Fn_CopyTask('src/lib/**/*', 'public/lib/');
 });
 
 // 压缩img
@@ -101,51 +102,26 @@ gulp.task('img', function () {
                 }
             ]
         })
-    ])) //压缩图片
+    ])).pipe(gulp.dest('public/images/'));
     // .pipe(imagemin({optimizationLevel: 5, progressive: true, interlaced: true}))
     // //压缩图片 如果想对变动过的文件进行压缩，则使用下面一句代码 .pipe(cache(imagemin({ optimizationLevel: 3,
-    // progressive: true, interlaced: true })))
-        .pipe(gulp.dest('public/images/'))
-    // .pipe(notify({ message: '图片处理完成' }));
+    // progressive: true, interlaced: true }))) .pipe(notify({ message: '图片处理完成'
+    // }));
 });
 
 // 压缩js
 gulp.task('js', function () {
-    return gulp
-        .src('src/javascripts/**/*.js')
-        .pipe(jshint())
-        .pipe(jshint.reporter('default'))
-        // .pipe(uglify({mangle: true, compress: true}))
-        .pipe(gulp.dest('public/javascripts/'))
+    return Fn_JsTask('src/javascripts/**/*.js', 'public/javascripts/');
 });
 
 gulp.task('inject', function (cb) {
     const ejsArr = getEntries('views/**/*.ejs');
     var taskArr = [];
     ejsArr.forEach(function (ejsPath, index) {
-        var cssPathObj = getCssPath(ejsPath);
+        var pathObj = getCssJsPath(ejsPath);
         var taskName = 'inject' + index;
         gulp.task(taskName, function (cb) {
-            return gulp
-                .src(ejsPath)
-                .pipe(inject(gulp.src(cssPathObj.cssFilePath, {read: false}), {
-                    starttag: '<!-- inject:css -->',
-                    endtag: '<!-- endinject -->',
-                    transform: function (filepath, file, i, length) {
-                        let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.cssLinkPath + "?t=" + todayTime + "' />";
-                        return scriptStr;
-                    }
-                }))
-                .pipe(inject(gulp.src(cssPathObj.jsFilePath, {read: false}), {
-                    starttag: '<!-- inject:js -->',
-                    endtag: '<!-- endinject -->',
-                    transform: function (filepath, file, i, length) {
-                        let scriptStr = "<script src='" + cssPathObj.jsLinkPath + "?t=" + todayTime + "'></script>";
-                        console.log(scriptStr);
-                        return scriptStr;
-                    }
-                }))
-                .pipe(gulp.dest(path.dirname(ejsPath)));
+            Fn_InjectTask(ejsPath, pathObj, cb);
         });
         taskArr.push(taskName);
     })
@@ -213,21 +189,13 @@ gulp.task('dev', function () {
         .watch('src/lib/**/*.js')
         .on('change', function (event) {
             const filePath = path.relative(__dirname, event.path);
-            return gulp
-                .src(filePath)
-                .pipe(gulp.dest(getPublicFilePath(filePath)))
+            return Fn_CopyTask(filePath, getPublicFilePath(filePath));
         });
     gulp
         .watch('src/javascripts/**/*.js')
         .on('change', function (event) {
             const filePath = path.relative(__dirname, event.path);
-            return gulp
-                .src(filePath)
-                .pipe(jshint())
-                .pipe(jshint.reporter('default'))
-                // .pipe(uglify({mangle: true, compress: true}))
-                .on('error', swallowError)
-                .pipe(gulp.dest(getPublicFilePath(filePath)))
+            return Fn_JsTask(filePath, getPublicFilePath(filePath));
         });
     gulp
         .watch(["public/javascripts/**/*.js", "public/lib/**/*.js"])
@@ -267,11 +235,7 @@ gulp.task('dev', function () {
             const pathArr = filePath.split(path.sep);
             pathArr.shift();
             pathArr.pop();
-            return gulp
-                .src(event.path)
-                .pipe(htmlmin({collapseWhitespace: true}))
-                .on('error', swallowError)
-                .pipe(gulp.dest(pathArr.join('/')))
+            return Fn_EJSTask(filePath, pathArr.join('/'));
         });
     var watcher = gulp.watch("./views/**/*.ejs");
     watcher.on('change', function (event) {
@@ -280,32 +244,13 @@ gulp.task('dev', function () {
         console.log('relative path:' + path.relative(__dirname, event.path));
         const filePath = path.relative(__dirname, event.path);
         const ejsArr = getEntries(filePath);
-        const cssPathObj = getCssPath(ejsArr[0]);
-        gulp
-            .src(filePath)
-            .pipe(inject(gulp.src(cssPathObj.cssFilePath, {read: false}), {
-                starttag: '<!-- inject:css -->',
-                endtag: '<!-- endinject -->',
-                transform: function (filepath, file, i, length) {
-                    let scriptStr = "<link rel='stylesheet' href='" + cssPathObj.cssLinkPath + "' />";
-                    return scriptStr;
-                }
-            }))
-            .pipe(inject(gulp.src(cssPathObj.jsFilePath, {read: false}), {
-                starttag: '<!-- inject:js -->',
-                endtag: '<!-- endinject -->',
-                transform: function (filepath, file, i, length) {
-                    let scriptStr = "<script src='" + cssPathObj.jsLinkPath + "?t=" + todayTime + "' ></script>";
-                    return scriptStr;
-                }
-            }))
-            .on('error', swallowError)
-            .pipe(gulp.dest(path.dirname(filePath)))
-            .on('end', reload);
+        const pathObj = getCssJsPath(ejsArr[0]);
+        Fn_InjectTask(filePath, pathObj, reload);
     });
 })
 
 gulp.task('default', function (cb) {
+    isDev = true;
     runSequence('build', 'browser-sync', 'dev', cb);
 });
 
@@ -315,7 +260,57 @@ gulp.task('build', function (cb) {
     ], 'inject', cb);
 });
 
-// gulp.task('default', ['serve']);
+function Fn_EJSTask(glob_path, dest_path){
+    return gulp
+        .src(glob_path)
+        .pipe(htmlmin({collapseWhitespace: true}))
+        .pipe(gulp.dest(dest_path));
+}
+
+function Fn_InjectTask(filePath, pathObj, cb) {
+    gulp
+        .src(filePath)
+        .pipe(inject(gulp.src(pathObj.cssFilePath, {read: false}), {
+            starttag: '<!-- inject:css -->',
+            endtag: '<!-- endinject -->',
+            transform: function (filepath, file, i, length) {
+                let scriptStr = "<link rel='stylesheet' href='" + pathObj.cssLinkPath + "' />";
+                return scriptStr;
+            }
+        }))
+        .pipe(inject(gulp.src(pathObj.jsFilePath, {read: false}), {
+            starttag: '<!-- inject:js -->',
+            endtag: '<!-- endinject -->',
+            transform: function (filepath, file, i, length) {
+                let scriptStr = "<script src='" + pathObj.jsLinkPath + "?t=" + todayTime + "' ></script>";
+                return scriptStr;
+            }
+        }))
+        .on('error', swallowError)
+        .pipe(gulp.dest(path.dirname(filePath)))
+        .on('end', cb);
+}
+
+function Fn_CopyTask(glob_path, dest_path) {
+    return gulp
+        .src(glob_path)
+        .pipe(gulp.dest(dest_path));
+}
+
+function Fn_JsTask(glob_path, dest_path) {
+    console.log('Run:Fn_JsTask');
+    let jsTask = gulp
+        .src(glob_path)
+        .pipe(jshint())
+        .pipe(jshint.reporter('default'));
+    if (isDev) {
+        return jsTask.pipe(gulp.dest('public/javascripts/'));
+    } else {
+        return jsTask
+            .pipe(uglify({mangle: true, compress: true}))
+            .pipe(gulp.dest(dest_path));
+    }
+}
 
 function getEntries(globPath) {
     var files = [],
@@ -333,7 +328,7 @@ function getEntries(globPath) {
     return files;
 }
 
-function getCssPath(ejsPath) {
+function getCssJsPath(ejsPath) {
     let extname = path.extname(ejsPath);
     let cssname = path.basename(ejsPath, extname);
     let ejsPathArr = ejsPath.split(path.sep);
@@ -371,7 +366,7 @@ function getPublicFilePath(filePath) {
 
 function swallowError(error) {
     // If you want details of the error in the console
-  console.error(error.toString())
+    console.error(error.toString())
 
-  this.emit('end')
+    this.emit('end')
 }
