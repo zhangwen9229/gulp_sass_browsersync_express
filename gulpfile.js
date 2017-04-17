@@ -20,12 +20,11 @@ const gulp = require('gulp'),
     cssBase64 = require('gulp-base64'),
     glob = require('glob'),
     path = require('path'),
-    tinypng = require('gulp-tinypng'),
     inject = require('gulp-inject');
 
 const todayTime = new Date().getTime();
 const publicPath = 'public';
-const isDev = true;//是否开发模式
+const isDev = true; //是否开发模式
 
 var px2remOptions = {
     rootValue: 750 / 16,
@@ -50,19 +49,25 @@ var postCssOptions = {
 // scss编译后的css将注入到浏览器里实现更新
 gulp.task('sass', function () {
     var plugins = [autoprefixer({browsers: ['> 5%']})];
-    // const f = filter(['**', '!node_modules/**', '!px2rem.scss']);
-    return gulp.src('src/stylesheets/**/*.scss')
-    // .pipe(f)
+    // const f = filter(['**', '!node_modules/**', '!px2rem.scss']); .pipe(f)
+    let sassTask = gulp
+        .src('src/stylesheets/**/*.scss')
         .pipe(sourcemaps.init())
         .pipe(sass().on('error', sass.logError))
         .pipe(postcss(plugins))
         .pipe(px2rem(px2remOptions, postCssOptions))
         .pipe(cssBase64())
-        .pipe(minify())
-        .pipe(sourcemaps.write('./'))
-        .pipe(gulp.dest('public/stylesheets/'))
-        .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
-        .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
+        .pipe(minify());
+    if (isDev) {
+        return sassTask
+            .pipe(sourcemaps.write('./'))
+            .pipe(gulp.dest('public/stylesheets/'))
+            .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
+            .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
+    } else {
+        return sassTask.pipe(gulp.dest('public/stylesheets/'));
+    }
+
 });
 
 // 删除文件
@@ -108,13 +113,6 @@ gulp.task('img', function () {
     // progressive: true, interlaced: true })))
         .pipe(gulp.dest('public/images/'))
     // .pipe(notify({ message: '图片处理完成' }));
-});
-
-gulp.task('tinypng', function () {
-    gulp
-        .src('src/images/**/*')
-        .pipe(tinypng('OBvZm6eLcfk0uSgsUD34Lz9MsP1qfGIw'))
-        .pipe(gulp.dest('public/images/'));
 });
 
 // 压缩js
@@ -323,8 +321,6 @@ gulp.task('build', function (cb) {
     ], 'inject', cb);
 });
 
-// gulp.task('default', ['serve']);
-
 function getEntries(globPath) {
     var files = [],
         entries = {};
@@ -379,7 +375,7 @@ function getPublicFilePath(filePath) {
 
 function swallowError(error) {
     // If you want details of the error in the console
-  console.error(error.toString())
+    console.error(error.toString())
 
-  this.emit('end')
+    this.emit('end')
 }
