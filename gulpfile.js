@@ -54,93 +54,6 @@ gulp.task('build', function (cb) {
     ], 'inject', cb);
 });
 
-return;
-
-// scss编译后的css将注入到浏览器里实现更新
-gulp.task('sass', function () {
-    var plugins = [autoprefixer({browsers: ['> 5%']})];
-    // const f = filter(['**', '!node_modules/**', '!px2rem.scss']); .pipe(f)
-    let sassTask = gulp
-        .src('src/stylesheets/**/*.scss')
-        .pipe(sourcemaps.init())
-        .pipe(sass().on('error', sass.logError))
-        .pipe(postcss(plugins))
-        .pipe(px2rem(px2remOptions, postCssOptions))
-        .pipe(cssBase64())
-        .pipe(minify());
-    if (isDev) {
-        return sassTask
-            .pipe(sourcemaps.write('./'))
-            .pipe(gulp.dest('public/stylesheets/'))
-            .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
-            .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
-    } else {
-        return sassTask.pipe(gulp.dest('public/stylesheets/'));
-    }
-
-});
-
-// 删除文件
-gulp.task('clean', function (cb) {
-    return gulp.src([
-        publicPath + '/',
-        'views/'
-    ], {read: false}).pipe(clean());
-});
-
-// 压缩ejs
-gulp.task('ejs', function () {
-    return Fn_EJSTask('src/views/**/*.ejs', './views/');
-});
-
-// 拷贝lib
-gulp.task('lib', function () {
-    return Fn_CopyTask('src/lib/**/*', 'public/lib/');
-});
-
-// 压缩img
-gulp.task('img', function () {
-    return gulp.src('src/images/**/*') //引入所有需处理的Img
-        .pipe(imagemin([
-        imagemin.gifsicle({interlaced: true}),
-        imagemin.jpegtran({progressive: true}),
-        imagemin.optipng({optimizationLevel: 1}),
-        imagemin.svgo({
-            plugins: [
-                {
-                    removeViewBox: true
-                }
-            ]
-        })
-    ])).pipe(gulp.dest('public/images/'));
-    // .pipe(imagemin({optimizationLevel: 5, progressive: true, interlaced: true}))
-    // //压缩图片 如果想对变动过的文件进行压缩，则使用下面一句代码 .pipe(cache(imagemin({ optimizationLevel: 3,
-    // progressive: true, interlaced: true }))) .pipe(notify({ message: '图片处理完成'
-    // }));
-});
-
-// 压缩js
-gulp.task('js', function () {
-    return Fn_JsTask('src/javascripts/**/*.js', 'public/javascripts/');
-});
-
-gulp.task('inject', function (cb) {
-    const ejsArr = getEntries('views/**/*.ejs');
-    var taskArr = [];
-    ejsArr.forEach(function (ejsPath, index) {
-        var pathObj = getCssJsPath(ejsPath);
-        var taskName = 'inject' + index;
-        gulp.task(taskName, function (cb) {
-            Fn_InjectTask(ejsPath, pathObj, cb);
-        });
-        taskArr.push(taskName);
-    })
-    if (taskArr.length == 0) {
-        cb();
-        return;
-    }
-    runSequence(taskArr, cb);
-})
 
 // 浏览器同步，用7000端口去代理Express的3000端口
 gulp.task('browser-sync', ['nodemon'], function () {
@@ -264,11 +177,11 @@ gulp.task('default', function (cb) {
     runSequence('build', 'browser-sync', 'dev', cb);
 });
 
-gulp.task('build', function (cb) {
-    runSequence('clean', [
-        'sass', 'ejs', 'js', 'img', 'lib'
-    ], 'inject', cb);
-});
+// gulp.task('build', function (cb) {
+//     runSequence('clean', [
+//         'sass', 'ejs', 'js', 'img', 'lib'
+//     ], 'inject', cb);
+// });
 
 function Fn_EJSTask(glob_path, dest_path) {
     return gulp

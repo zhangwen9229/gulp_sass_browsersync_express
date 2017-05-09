@@ -11,13 +11,82 @@ const clean = require('gulp-clean'),
 
 module.exports.RegisterTasks = function (gulp, dirname) {
     const taskTools = require('./tasktools').taskTools(gulp);
+    Fn_Build(gulp, dirname, taskTools);
+    Fn_Dev(gulp, dirname, taskTools);
+}
+
+function Fn_Dev(gulp, dirname, taskTools) {
+    gulp
+        .task('dev', function () {
+            // 将你的默认的任务代码放这 监听所有scss文档
+            gulp
+                .watch(path.join(dirname, config.src, config.stylesheets, '**', '*.scss'))
+                .on('change', function (event) {
+                    const filePath = path.relative(__dirname, event.path);
+                    return taskTools.Compresssass(filePath, utils.Fn_GetFileDistPath(filePath));
+                });
+
+            // 监听所有.js档
+            gulp
+                .watch(path.join(dirname, config.src, config.library, '**', '*.js'))
+                .on('change', function (event) {
+                    const filePath = path.relative(__dirname, event.path);
+                    return taskTools.cope(filePath, utils.Fn_GetFileDistPath(filePath));
+                });
+            gulp
+                .watch(path.join(dirname, config.src, config.javascripts, '**', '*.js'))
+                .on('change', function (event) {
+                    const filePath = path.relative(__dirname, event.path);
+                    return taskTools.CompressJs(filePath, utils.Fn_GetFileDistPath(filePath));
+                });
+            gulp.watch([
+                path.join(dirname, config.dist, config.javascripts, '**', '*.js'),
+                path.join(dirname, config.library, '**', '*.*')
+            ]).on('change', reload);
+
+            // 监听所有图片档
+            gulp
+                .watch(path.join(dirname, config.src, config.images, '**', '*'))
+                .on('change', function (event) {
+                    const filePath = path.relative(__dirname, event.path);
+                    return taskTools.CopeImage(filePath, utils.Fn_GetFileDistPath(filePath));
+                });
+            gulp
+                .watch(path.join(dirname, config.dist, config.images, '**', '*'))
+                .on('change', reload);
+
+            // 监听ejs
+            gulp
+                .watch(path.join(dirname, config.src, config.viewsSrc, '**', '*' + config.htmlTemplateExt))
+                .on('change', function (event) {
+                    const filePath = path.relative(dirname, event.path);
+                    const pathArr = filePath.split(path.sep);
+                    pathArr.shift();
+                    pathArr.pop();
+                    return taskTools.compressTemplate(filePath, pathArr.join('/'));
+                });
+            var watcher = gulp.watch(path.join(dirname, config.viewsDist, '**', '*' + config.htmlTemplateExt));
+            watcher.on('change', function (event) {
+                // console.log('Event type: ' + event.type); // added, changed, or deleted
+                // console.log('Event path: ' + event.path); // The path of the modified file
+                console.log('relative path:' + path.relative(dirname, event.path));
+                const filePath = path.relative(dirname, event.path);
+                // const ejsArr = utils.Fn_GetEntries(filePath);
+                const pathObj = utils.Fn_GetCssJsPath(filePath);
+                Fn_InjectTask(event.path, pathObj, reload);
+            });
+        })
+}
+
+function Fn_Build(gulp, dirname, taskTools) {
     // 删除文件
-    gulp.task('clean', function (cb) {
-        return gulp.src([
-            path.join(config.dist, '/'),
-            path.join(config.viewsDist, '/')
-        ], {read: false}).pipe(clean());
-    });
+    gulp
+        .task('clean', function (cb) {
+            return gulp.src([
+                path.join(config.dist, '/'),
+                path.join(config.viewsDist, '/')
+            ], {read: false}).pipe(clean());
+        });
     // scss编译后的css将注入到浏览器里实现更新
     gulp.task('sass', function () {
         const styleDist = path.join(dirname, config.dist, config.stylesheets)
@@ -65,10 +134,7 @@ module.exports.RegisterTasks = function (gulp, dirname) {
         runSequence(taskArr, cb);
 
     });
-
 }
-
-function Fn_Build() {}
 
 function Fn_IsApp() {
     return true;
