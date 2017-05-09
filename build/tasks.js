@@ -1,43 +1,39 @@
-const postCssOptions = {
-    map: false
-};
-
 const clean = require('gulp-clean'),
     runSequence = require('run-sequence'),
-
     config = require('./config'),
     path = require('path'),
-    utils = require('./utils');
+    watch = require('gulp-watch');
+utils = require('./utils');
 
-module.exports.RegisterTasks = function (gulp, dirname) {
-    const taskTools = require('./tasktools').taskTools(gulp);
-    Fn_Build(gulp, dirname, taskTools);
-    Fn_Dev(gulp, dirname, taskTools);
+module.exports.RegisterTasks = function (gulp, dirname, reload) {
+    const taskTools = require('./tasktools').taskTools(gulp, reload);
+    Fn_Build(gulp, dirname, reload, taskTools);
+    Fn_Dev(gulp, dirname, reload, taskTools);
 }
 
-function Fn_Dev(gulp, dirname, taskTools) {
+function Fn_Dev(gulp, dirname, reload, taskTools) {
     gulp
         .task('dev', function () {
             // 将你的默认的任务代码放这 监听所有scss文档
-            gulp
-                .watch(path.join(dirname, config.src, config.stylesheets, '**', '*.scss'))
-                .on('change', function (event) {
-                    const filePath = path.relative(__dirname, event.path);
-                    return taskTools.Compresssass(filePath, utils.Fn_GetFileDistPath(filePath));
-                });
+            watch(path.join(dirname, config.src, config.stylesheets, '**', '*.scss'), function (event) {
+                const filePath = path.relative(dirname, event.path);
+                console.log(event.path)
+                console.log(utils.Fn_GetFileDistPath(filePath));
+                return taskTools.Compresssass(event.path, utils.Fn_GetFileDistPath(filePath));
+            });
 
             // 监听所有.js档
             gulp
                 .watch(path.join(dirname, config.src, config.library, '**', '*.js'))
                 .on('change', function (event) {
-                    const filePath = path.relative(__dirname, event.path);
-                    return taskTools.cope(filePath, utils.Fn_GetFileDistPath(filePath));
+                    const filePath = path.relative(dirname, event.path);
+                    return taskTools.cope(event.path, utils.Fn_GetFileDistPath(filePath));
                 });
             gulp
                 .watch(path.join(dirname, config.src, config.javascripts, '**', '*.js'))
                 .on('change', function (event) {
-                    const filePath = path.relative(__dirname, event.path);
-                    return taskTools.CompressJs(filePath, utils.Fn_GetFileDistPath(filePath));
+                    const filePath = path.relative(dirname, event.path);
+                    return taskTools.CompressJs(event.path, utils.Fn_GetFileDistPath(filePath));
                 });
             gulp.watch([
                 path.join(dirname, config.dist, config.javascripts, '**', '*.js'),
@@ -45,17 +41,20 @@ function Fn_Dev(gulp, dirname, taskTools) {
             ]).on('change', reload);
 
             // 监听所有图片档
-            gulp
-                .watch(path.join(dirname, config.src, config.images, '**', '*'))
-                .on('change', function (event) {
-                    const filePath = path.relative(__dirname, event.path);
-                    return taskTools.CopeImage(filePath, utils.Fn_GetFileDistPath(filePath));
-                });
+            watch([
+                path.join(dirname, config.src, config.images, '**', '*'),
+                '!' + path.join(dirname, config.src, config.images, '**', '*.DS_Store')
+            ], function (event) {
+                const filePath = path.relative(dirname, event.path);
+                console.log(event.path)
+                console.log(utils.Fn_GetFileDistPath(filePath))
+                return taskTools.CopeImage(event.path, utils.Fn_GetFileDistPath(filePath));
+            });
             gulp
                 .watch(path.join(dirname, config.dist, config.images, '**', '*'))
                 .on('change', reload);
 
-            // 监听ejs
+            // 监听HTML 模板
             gulp
                 .watch(path.join(dirname, config.src, config.viewsSrc, '**', '*' + config.htmlTemplateExt))
                 .on('change', function (event) {
@@ -63,7 +62,7 @@ function Fn_Dev(gulp, dirname, taskTools) {
                     const pathArr = filePath.split(path.sep);
                     pathArr.shift();
                     pathArr.pop();
-                    return taskTools.compressTemplate(filePath, pathArr.join('/'));
+                    return taskTools.compressTemplate(event.path, pathArr.join('/'));
                 });
             var watcher = gulp.watch(path.join(dirname, config.viewsDist, '**', '*' + config.htmlTemplateExt));
             watcher.on('change', function (event) {
@@ -78,7 +77,7 @@ function Fn_Dev(gulp, dirname, taskTools) {
         })
 }
 
-function Fn_Build(gulp, dirname, taskTools) {
+function Fn_Build(gulp, dirname, reload, taskTools) {
     // 删除文件
     gulp
         .task('clean', function (cb) {
@@ -134,21 +133,4 @@ function Fn_Build(gulp, dirname, taskTools) {
         runSequence(taskArr, cb);
 
     });
-}
-
-function Fn_IsApp() {
-    return true;
-}
-
-const devEnv = require('./dev.env'),
-    prodEnv = require('./prod.env');
-/**
- * 判断是否生产环境
- */
-function Fn_IsProductionEnv() {
-    if (NODE_ENV == prodEnv.NODE_ENV) {
-        return true;
-    } else {
-        return false;
-    }
 }

@@ -38,6 +38,7 @@
     "run-sequence": "^1.2.2"
   },
   "scripts": {
+    "dev": "NODE_ENV='development' gulp",
     "start": "forever start bin/www",
     "restart": "forever restart bin/www",
     "stop": "forever stop bin/www",

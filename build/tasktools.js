@@ -9,8 +9,6 @@ const sass = require('gulp-sass'),
     postcss = require('gulp-postcss'),
     px2rem = require('gulp-px2rem'),
     autoprefixer = require('autoprefixer'),
-    browserSync = require('browser-sync').create(),
-    reload = browserSync.reload,
     sourcemaps = require('gulp-sourcemaps'),
     minify = require('gulp-clean-css'),
     nodemon = require('gulp-nodemon'),
@@ -28,12 +26,17 @@ const sass = require('gulp-sass'),
 const todayTime = new Date().getTime();
 
 class TaskTools {
-    constructor(gulp) {
+    constructor(gulp, reload) {
         this.gulp = gulp;
+        this.reload = reload;
         this.isDev = false; //是否是开发模式
+        console.log(process.env.NODE_ENV);
+        console.log("devEnv.NODE_ENV:",devEnv.NODE_ENV);
         if (process.env.NODE_ENV == devEnv.NODE_ENV) {
             this.isDev = true;
         }
+
+        console.log('isDev:',this.isDev);
     }
     compressTemplate(globPath, distPath) {
         console.log(globPath)
@@ -77,10 +80,10 @@ class TaskTools {
             .src(globPath)
             .pipe(self.gulp.dest(distPath));
     }
-    CompressJs(globPath) {
+    CompressJs(globPath, distPath) {
         console.log('Run: JsCompress');
         const self = this;
-        const distPath = path.join(config.dist, config.javascripts);
+        // const distPath = path.join(config.dist, config.javascripts);
         let jsTask = self
             .gulp
             .src(globPath)
@@ -98,32 +101,31 @@ class TaskTools {
         console.log('Run: SassCompress');
         const self = this;
         // scss编译后的css将注入到浏览器里实现更新
-        self
-            .gulp
-            .task('sass', function () {
-                var plugins = [autoprefixer({browsers: ['> 5%']})];
 
-                let sassTask = self
-                    .gulp
-                    .src(globPath)
-                    .pipe(sourcemaps.init())
-                    .pipe(sass().on('error', sass.logError))
-                    .pipe(postcss(plugins))
-                    .pipe(px2rem(config.px2remOptions, {map: false}))
-                    .pipe(cssBase64())
-                    .pipe(minify());
-                if (this.isDev) {
-                    return sassTask
-                        .pipe(sourcemaps.write('./'))
-                        .pipe(self.gulp.dest(distPath))
-                        // .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
-                        .pipe(reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
-                } else {
-                    return sassTask.pipe(self.gulp.dest(distPath));
-                }
-            });
+        var plugins = [autoprefixer({browsers: ['> 5%']})];
+
+        let sassTask = self
+            .gulp
+            .src(globPath)
+            .pipe(sourcemaps.init())
+            .pipe(sass().on('error', sass.logError))
+            .pipe(postcss(plugins))
+            .pipe(px2rem(config.px2remOptions, {map: false}))
+            .pipe(cssBase64())
+            .pipe(minify());
+        if (this.isDev) {
+            return sassTask
+                .pipe(sourcemaps.write('./'))
+                .pipe(self.gulp.dest(distPath))
+                // .pipe(filter(['**/*.css'])) //防止sourcemap引起全页面刷新（css非注入式刷新）
+                .pipe(self.reload({stream: true, match: '**/*.css'})); //match: '**/*.css' 防止sourcemap引起全页面刷新（css非注入式刷新）
+        } else {
+            return sassTask.pipe(self.gulp.dest(distPath));
+        }
+
     }
     CopeImage(globPath, distPath) {
+        console.log('Run: CopeImage');
         const self = this;
         return self
             .gulp
@@ -150,6 +152,6 @@ class TaskTools {
     }
 }
 
-module.exports.taskTools = function (gulp) {
-    return new TaskTools(gulp);
+module.exports.taskTools = function (gulp, reload) {
+    return new TaskTools(gulp, reload);
 }

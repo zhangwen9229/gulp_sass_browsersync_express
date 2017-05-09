@@ -55,7 +55,7 @@ function Fn_GetCssJsPath(templatePath) {
  */
 function Fn_GetFileDistPath(fileRelativePath) {
     const pathArr = fileRelativePath.split(path.sep);
-    pathArr[0] = publicPath;
+    pathArr[0] = config.dist;
     pathArr.pop();
     return pathArr.join('/');
 }
