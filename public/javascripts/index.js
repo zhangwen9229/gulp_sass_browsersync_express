@@ -1,7 +1,1 @@
-console.log(1111);
-console.log(222);
-var userStr = 'str8888';
-console.log(userStr);
-function fn_ste(teststr){
-    console.log(teststr);
-}
+function fn_ste(o){console.log(o)}console.log(1111),console.log(222);var userStr="str8888";console.log(userStr);

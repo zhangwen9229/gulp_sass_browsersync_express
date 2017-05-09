@@ -46,6 +46,16 @@ var postCssOptions = {
     map: false
 };
 
+require('./build/tasks').RegisterTasks(gulp, __dirname);
+
+gulp.task('build', function (cb) {
+    runSequence('clean', [
+        'sass', 'template', 'js', 'img', 'lib'
+    ], 'inject', cb);
+});
+
+return;
+
 // scss编译后的css将注入到浏览器里实现更新
 gulp.task('sass', function () {
     var plugins = [autoprefixer({browsers: ['> 5%']})];
@@ -80,7 +90,7 @@ gulp.task('clean', function (cb) {
 
 // 压缩ejs
 gulp.task('ejs', function () {
-    return Fn_EJSTask('src/views/**/*.ejs','./views/');
+    return Fn_EJSTask('src/views/**/*.ejs', './views/');
 });
 
 // 拷贝lib
@@ -260,7 +270,7 @@ gulp.task('build', function (cb) {
     ], 'inject', cb);
 });
 
-function Fn_EJSTask(glob_path, dest_path){
+function Fn_EJSTask(glob_path, dest_path) {
     return gulp
         .src(glob_path)
         .pipe(htmlmin({collapseWhitespace: true}))
