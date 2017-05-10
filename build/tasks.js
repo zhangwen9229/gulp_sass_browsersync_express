@@ -72,7 +72,7 @@ function Fn_Dev(gulp, dirname, reload, taskTools) {
                 const filePath = path.relative(dirname, event.path);
                 // const ejsArr = utils.Fn_GetEntries(filePath);
                 const pathObj = utils.Fn_GetCssJsPath(filePath);
-                Fn_InjectTask(event.path, pathObj, reload);
+                taskTools.staticInject(event.path, pathObj, reload);
             });
         })
 }
